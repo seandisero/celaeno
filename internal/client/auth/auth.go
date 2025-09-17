@@ -3,6 +3,7 @@ package auth
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -31,14 +32,11 @@ func makeConfigIfNotExists(filePath string) {
 	}
 }
 
-func SaveTokenToFile(token string) error {
+func writeDataToTokenFile(data []byte) error {
 	filePath, err := getTokenFilePath()
 	if err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("could not get token file path")
 	}
-
-	makeConfigIfNotExists(filePath)
-
 	file, err := os.OpenFile(filepath.Clean(filePath), os.O_CREATE|os.O_TRUNC, tokenFileMode)
 	if err != nil {
 		slog.Info("error creating file")
@@ -46,7 +44,7 @@ func SaveTokenToFile(token string) error {
 	}
 	defer file.Close()
 
-	err = os.WriteFile(filepath.Clean(filePath), []byte(token), tokenFileMode)
+	err = os.WriteFile(filepath.Clean(filePath), data, tokenFileMode)
 	if err != nil {
 		return fmt.Errorf("error when writing token to file: %w", err)
 	}
@@ -54,6 +52,37 @@ func SaveTokenToFile(token string) error {
 }
 
 func AuthToken() (string, error) {
+	return findAuthToken()
+}
+
+func SetAuthToken(token string) error {
+	return saveTokenToFile(token)
+}
+
+func saveTokenToFile(token string) error {
+	filePath, err := getTokenFilePath()
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	makeConfigIfNotExists(filePath)
+	err = writeDataToTokenFile([]byte(token))
+
+	return nil
+}
+
+func ApplyBearerToken(r *http.Request) error {
+	authToken, err := findAuthToken()
+	if err != nil {
+		return fmt.Errorf("could not get auth token: %w", err)
+	}
+
+	bearerToken := "Bearer " + authToken
+	r.Header.Set("Authorization", bearerToken)
+	return nil
+}
+
+func findAuthToken() (string, error) {
 	filePath, err := getTokenFilePath()
 	if err != nil {
 		return "", err

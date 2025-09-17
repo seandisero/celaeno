@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/seandisero/celaeno/internal/client/auth"
@@ -93,7 +92,7 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 		return shared.User{}, fmt.Errorf("could not decode responce data: %w", err)
 	}
 
-	err = auth.SaveTokenToFile(loginData.Token)
+	err = auth.SetAuthToken(loginData.Token)
 	if err != nil {
 		return shared.User{}, err
 	}
@@ -107,6 +106,53 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 
 	return user, nil
 
+}
+
+func (cli *CelaenoClient) Logout() error {
+
+	err := auth.SetAuthToken("")
+	if err != nil {
+		return fmt.Errorf("could not remove token on logout: %w", err)
+	}
+
+	return nil
+}
+
+func (cli *CelaenoClient) GetUser() (shared.User, error) {
+	req, err := http.NewRequest("GET", cli.URL+"/api/login", http.NoBody)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
+	}
+
+	authToken, err := auth.AuthToken()
+	if err != nil {
+		return shared.User{}, fmt.Errorf("could not get auth token")
+	}
+
+	req.Header.Set("Authorization", "Bearer "+authToken)
+
+	resp, err := cli.HttpClient.Do(req)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("error requesting user data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 {
+		var responceError shared.ResponceError
+		err = json.NewDecoder(resp.Body).Decode(&responceError)
+		if err != nil {
+			return shared.User{}, fmt.Errorf("error performing request and decoding message")
+		}
+		return shared.User{}, fmt.Errorf("error performing request: %s", responceError.Error)
+	}
+
+	var user shared.User
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("error decoding user data: %w", err)
+	}
+
+	return user, nil
 }
 
 func (cli *CelaenoClient) PostMessage(message string) error {
@@ -126,13 +172,10 @@ func (cli *CelaenoClient) PostMessage(message string) error {
 		return fmt.Errorf("failed to create new request: %v", err)
 	}
 
-	authToken, err := auth.AuthToken()
+	err = auth.ApplyBearerToken(req)
 	if err != nil {
-		return fmt.Errorf("could not get auth token: %w", err)
+		return fmt.Errorf("could not write auth token to header: %w", err)
 	}
-
-	bearerToken := "Bearer " + authToken
-	req.Header.Set("Authorization", bearerToken)
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -141,22 +184,22 @@ func (cli *CelaenoClient) PostMessage(message string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode > 299 {
-		var respError shared.ResponceError
-		err = json.NewDecoder(resp.Body).Decode(&respError)
-		if err != nil {
+		var ee shared.ResponceError
+		if err = json.NewDecoder(resp.Body).Decode(&ee); err != nil {
 			return fmt.Errorf("error decoding error responce %w", err)
 		}
-		return fmt.Errorf("error returned from server: %s\nwith status code: %d", respError.Error, resp.StatusCode)
+		fmt.Println(ee.Error)
+		return fmt.Errorf("error returned from server: %s\n", ee.Error)
 	}
 
 	var respBody shared.Message
-	err = json.NewDecoder(resp.Body).Decode(&respBody)
-	if err != nil {
-		slog.Error("this is where my error is")
-		slog.Info(respBody.Message)
+	if err = json.NewDecoder(resp.Body).Decode(&respBody); err != nil {
 		return fmt.Errorf("error unmarshaling json body")
 	}
-	fmt.Printf("\t\t\t%s < \n", respBody.Message)
+	for i := 0; i < 4; i++ {
+		fmt.Printf("\t")
+	}
+	fmt.Printf("%s < \n", respBody.Message)
 	return nil
 
 }

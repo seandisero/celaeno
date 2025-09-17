@@ -3,6 +3,7 @@ package cliapi
 import (
 	"bufio"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -36,6 +37,10 @@ func StartRepl(cfg CelaenoConfig) {
 		}
 		message := scanner.Text()
 
+		if message == "" {
+			continue
+		}
+
 		if message[0] == '/' {
 			commandStr, args, err := getCommandString(strings.Trim(message, "/"))
 			if err != nil {
@@ -62,7 +67,15 @@ func StartRepl(cfg CelaenoConfig) {
 		}
 		err := postCommand(cfg, message)
 		if err != nil {
-			fmt.Printf("error calling function: %v", err)
+			if strings.Contains(err.Error(), "no authorization token") {
+				fmt.Println(" > ")
+				fmt.Println(" > you must be logged in")
+				fmt.Println(" > ")
+				continue
+			} else if strings.Contains(err.Error(), "needs more arguments") {
+				fmt.Println(" > ")
+			}
+			slog.Error("posting message", "error", err)
 			return
 		}
 	}

@@ -11,8 +11,8 @@ import (
 	"github.com/seandisero/celaeno/internal/server/database"
 	"github.com/seandisero/celaeno/internal/server/srvapi"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	// "github.com/go-chi/chi/v5"
+	// "github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -47,16 +47,17 @@ func main() {
 	api.DB = database.New(db)
 	api.JwtSecret = jwtSecret
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	mux := http.NewServeMux()
+	mux.Handle("/", api)
 
-	r.Post("/app", api.HandlerPostMessage)
+	mux.Handle("POST /app", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerPostMessage)))
 
-	r.Post("/api/users", api.HandlerCreateUser)
-	r.Post("/api/login", api.HandlerLogin)
+	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
+	mux.HandleFunc("POST /api/login", api.HandlerLogin)
+	mux.Handle("GET /api/login", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerLoggedIn)))
 
 	server := http.Server{
-		Handler:           r,
+		Handler:           mux,
 		Addr:              ":" + port,
 		ReadHeaderTimeout: 5 * time.Second,
 	}

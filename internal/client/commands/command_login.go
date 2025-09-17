@@ -19,7 +19,7 @@ func CommandLogin(cfg cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("error loggin in: %w", err)
 	}
 
-	fmt.Printf(" > logged in as %s", user.Username)
+	fmt.Printf(" > logged in as %s\n", user.Username)
 
 	return nil
 }

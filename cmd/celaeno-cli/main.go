@@ -13,8 +13,10 @@ import (
 func mapCommands(cfg cliapi.CelaenoConfig) {
 	cfg.Commands["post-message"] = commands.CommandPostMessage
 	cfg.Commands["login"] = commands.CommandLogin
+	cfg.Commands["logout"] = commands.CommandLogout
+	cfg.Commands["whoami"] = commands.CommandGetUser
 	cfg.Commands["register"] = commands.CommandRegisterUser
-	cfg.Commands["/set displayname"] = commands.CommandSetDisplayName
+	cfg.Commands["set displayname"] = commands.CommandSetDisplayName
 }
 
 func main() {

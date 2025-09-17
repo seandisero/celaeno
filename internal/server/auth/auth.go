@@ -42,7 +42,7 @@ func GetBearerToken(headers http.Header) (string, error) {
 
 	splitAuth := strings.Split(authHeader, " ")
 	if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
-		slog.Error("header: %s", authHeader)
+		slog.Error("malformed auth header", "authHeader", authHeader)
 		return "", fmt.Errorf("malformed authorization header")
 	}
 

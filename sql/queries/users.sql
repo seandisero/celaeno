@@ -12,3 +12,7 @@ UPDATE users
 SET displayname = sqlc.arg(displayname), updated_at = DATETIME('now')
 WHERE id = sqlc.arg(id)
 RETURNING id, username, displayname, created_at, updated_at;
+
+-- name: GetUserByID :one
+SELECT * FROM users
+WHERE id = ?;
