@@ -16,3 +16,8 @@ RETURNING id, username, displayname, created_at, updated_at;
 -- name: GetUserByID :one
 SELECT * FROM users
 WHERE id = ?;
+
+-- name: DeleteUserByID :exec
+DELETE FROM users
+WHERE id = ?;
+

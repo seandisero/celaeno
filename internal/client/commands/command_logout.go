@@ -16,9 +16,9 @@ func CommandLogout(cfg cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("could not log out: %w", err)
 	}
 
-	fmt.Println(" > ")
+	fmt.Println(" ! ")
 	fmt.Println(" > you are now logged out")
-	fmt.Println(" > ")
+	fmt.Println(" ! ")
 
 	return nil
 }

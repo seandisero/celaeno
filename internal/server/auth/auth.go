@@ -54,7 +54,7 @@ func MakeJWT(userID []byte, tokenSecret string, expiresIn time.Duration) (string
 	webToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
 		Issuer:    string(TokenTypeAccess),
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(24 * time.Hour)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
 		Subject:   string(userID),
 	})
 	return webToken.SignedString(signingKey)
@@ -68,7 +68,7 @@ func ValidateJWT(tokenString, tokenSecret string) (string, error) {
 		func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
 	)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	userID, err := token.Claims.GetSubject()

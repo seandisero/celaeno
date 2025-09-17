@@ -1,6 +1,6 @@
 -- +goose up
 CREATE TABLE users(
-	id BLOB PRIMARY KEY,
+	id BLOB UNIQUE PRIMARY KEY,
 	username TEXT NOT NULL,
 	displayname TEXT,
 	created_at TIMESTAMP NOT NULL,

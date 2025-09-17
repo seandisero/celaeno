@@ -33,7 +33,7 @@ func (api *ApiHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(user.ID, api.JwtSecret, 24*time.Hour)
+	token, err := auth.MakeJWT(user.ID, api.JwtSecret, 30*time.Second)
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not sign string for web token", err)
 		return

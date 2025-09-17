@@ -16,7 +16,8 @@ func mapCommands(cfg cliapi.CelaenoConfig) {
 	cfg.Commands["logout"] = commands.CommandLogout
 	cfg.Commands["whoami"] = commands.CommandGetUser
 	cfg.Commands["register"] = commands.CommandRegisterUser
-	cfg.Commands["set displayname"] = commands.CommandSetDisplayName
+	cfg.Commands["deleteme"] = commands.CommandDeleteUser
+	cfg.Commands["set"] = commands.CommandSetUserAttr
 }
 
 func main() {

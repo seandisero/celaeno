@@ -25,7 +25,7 @@ func (api ApiHandler) MiddlewareValidateUser(next http.Handler) http.Handler {
 		userID, err := auth.ValidateJWT(token, api.JwtSecret)
 		if err != nil {
 			slog.Error("could not validate jwt")
-			server.RespondWithError(w, http.StatusUnauthorized, "invalid token", err)
+			server.RespondWithError(w, http.StatusUnauthorized, fmt.Sprintf("invalid token: %s", err.Error()), err)
 			return
 		}
 
@@ -37,7 +37,6 @@ func (api ApiHandler) MiddlewareValidateUser(next http.Handler) http.Handler {
 }
 
 func GetUserIDFromContext(ctx context.Context) (string, error) {
-	slog.Info("getting id from context", "context", ctx)
 	userID, ok := ctx.Value(UserContextKey).(string)
 	if !ok {
 		return "", fmt.Errorf("UserContextKey not present in context")

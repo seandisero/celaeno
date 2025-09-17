@@ -39,8 +39,6 @@ func (cli *CelaenoClient) RegisterUser(name, password string) (shared.User, erro
 	}
 	defer resp.Body.Close()
 
-	decoder := json.NewDecoder(resp.Body)
-
 	if resp.StatusCode == 409 {
 		return shared.User{}, fmt.Errorf("user %s already exists", name)
 	}
@@ -49,12 +47,54 @@ func (cli *CelaenoClient) RegisterUser(name, password string) (shared.User, erro
 	}
 
 	var user shared.User
-	err = decoder.Decode(&user)
+	err = json.NewDecoder(resp.Body).Decode(&user)
 	if err != nil {
 		return shared.User{}, fmt.Errorf("error while decoding new user data: %w", err)
 	}
 
 	return user, nil
+}
+
+func (cli *CelaenoClient) DeleteUser(password string) error {
+	type deleteRequest struct {
+		Password string `json:"password"`
+	}
+	reqBody := deleteRequest{
+		Password: password,
+	}
+
+	user, err := cli.GetUser()
+	if err != nil {
+		return fmt.Errorf("user not logged in: %w", err)
+	}
+
+	jsonReq, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("error marshaling request body")
+	}
+
+	requestBuffer := bytes.NewBuffer(jsonReq)
+	req, err := http.NewRequest("DELETE", cli.URL+fmt.Sprintf("/api/users/{%s}", user.ID), requestBuffer)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	auth.ApplyBearerToken(req)
+
+	resp, err := cli.HttpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error performing request")
+	}
+
+	if resp.StatusCode > 299 {
+		var respErr shared.ResponceError
+		err = json.NewDecoder(resp.Body).Decode(&respErr)
+		return fmt.Errorf("%s", respErr.Error)
+	}
+
+	auth.SetAuthToken("")
+
+	return nil
 }
 
 func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
@@ -80,6 +120,12 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 		return shared.User{}, fmt.Errorf("request error: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 {
+		var respErr shared.ResponceError
+		err = json.NewDecoder(resp.Body).Decode(&respErr)
+		return shared.User{}, fmt.Errorf("%s", respErr.Error)
+	}
 
 	decoder := json.NewDecoder(resp.Body)
 	type loginResponce struct {
@@ -124,12 +170,7 @@ func (cli *CelaenoClient) GetUser() (shared.User, error) {
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}
 
-	authToken, err := auth.AuthToken()
-	if err != nil {
-		return shared.User{}, fmt.Errorf("could not get auth token")
-	}
-
-	req.Header.Set("Authorization", "Bearer "+authToken)
+	auth.ApplyBearerToken(req)
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -188,7 +229,6 @@ func (cli *CelaenoClient) PostMessage(message string) error {
 		if err = json.NewDecoder(resp.Body).Decode(&ee); err != nil {
 			return fmt.Errorf("error decoding error responce %w", err)
 		}
-		fmt.Println(ee.Error)
 		return fmt.Errorf("error returned from server: %s\n", ee.Error)
 	}
 
@@ -202,4 +242,55 @@ func (cli *CelaenoClient) PostMessage(message string) error {
 	fmt.Printf("%s < \n", respBody.Message)
 	return nil
 
+}
+
+func (cli *CelaenoClient) SetDisplayName(displayname string) (shared.User, error) {
+	type request struct {
+		DisplayName string `json:"displayname"`
+	}
+
+	requestBody := request{
+		DisplayName: displayname,
+	}
+
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("could not marshal request: %w", err)
+	}
+
+	requestBuffer := bytes.NewBuffer(jsonBody)
+
+	user, err := cli.GetUser()
+	if err != nil {
+		return shared.User{}, fmt.Errorf("could not get user")
+	}
+
+	requestURL := cli.URL + "/api/users/" + string(user.ID)
+	req, err := http.NewRequest("PUT", requestURL, requestBuffer)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
+	}
+
+	auth.ApplyBearerToken(req)
+
+	resp, err := cli.HttpClient.Do(req)
+	if err != nil {
+		return shared.User{}, fmt.Errorf("error doing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode > 299 {
+		var ee shared.ResponceError
+		if err = json.NewDecoder(resp.Body).Decode(&ee); err != nil {
+			return shared.User{}, fmt.Errorf("error decoding error responce %w", err)
+		}
+		return shared.User{}, fmt.Errorf("error returned from server: %s\n", ee.Error)
+	}
+
+	var data shared.User
+	if err = json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return shared.User{}, fmt.Errorf("error decoding request body: %w", err)
+	}
+
+	return data, nil
 }

@@ -3,7 +3,6 @@ package srvapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -40,7 +39,8 @@ func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request)
 	id := uuid.New()
 	hashedPassword, err := auth.HashPassword(req.Password)
 	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, "error creating user", err)
+		slog.Error("trying to hash passwrod", "error", err)
+		server.RespondWithError(w, http.StatusInternalServerError, "server error", err)
 		return
 	}
 
@@ -50,7 +50,6 @@ func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request)
 		HashedPassword: hashedPassword,
 	}
 
-	slog.Info("about to create user")
 	user, err := api.DB.CreateUser(context.Background(), userParams)
 	if err != nil {
 		slog.Error("failed to create user")
@@ -58,19 +57,10 @@ func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	newUser := shared.User{
+	server.RespondWithJSON(w, http.StatusOK, shared.User{
 		ID:        user.ID,
 		Username:  user.Username,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
-	}
-
-	data, err := json.Marshal(newUser)
-	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, "could not marshal new user data", err)
-		return
-	}
-	fmt.Println(data)
-
-	server.RespondWithJSON(w, http.StatusOK, data)
+	})
 }

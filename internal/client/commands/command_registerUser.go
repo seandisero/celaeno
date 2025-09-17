@@ -16,11 +16,12 @@ func CommandRegisterUser(cfg cliapi.CelaenoConfig, args ...string) error {
 
 	user, err := cfg.Client.RegisterUser(name, password)
 	if err != nil {
-		return fmt.Errorf(" > could not register user: %w", err)
+		return fmt.Errorf("could not register user: %w", err)
 	}
 
 	fmt.Println(" + ")
 	fmt.Printf(" > rigistered new user: %s\n", user.Username)
+	fmt.Println(" > time to log in: us /login <username> <password>")
 	fmt.Println(" + ")
 
 	return nil

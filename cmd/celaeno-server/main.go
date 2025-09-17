@@ -53,6 +53,9 @@ func main() {
 	mux.Handle("POST /app", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerPostMessage)))
 
 	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
+	mux.Handle("PUT /api/users/{id}", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerSetDisplayName)))
+	mux.Handle("DELETE /api/users/{id}", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerDeleteUser)))
+
 	mux.HandleFunc("POST /api/login", api.HandlerLogin)
 	mux.Handle("GET /api/login", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerLoggedIn)))
 

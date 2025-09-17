@@ -44,17 +44,17 @@ func StartRepl(cfg CelaenoConfig) {
 		if message[0] == '/' {
 			commandStr, args, err := getCommandString(strings.Trim(message, "/"))
 			if err != nil {
-				fmt.Printf("error parsing command: %v\n", err)
+				fmt.Printf(" > error parsing command: %v\n", err)
 				continue
 			}
 			command, ok := cfg.Commands[commandStr]
 			if !ok {
-				fmt.Printf("that command does not exist: %s\n", commandStr)
+				fmt.Printf(" > that command does not exist: %s\n", commandStr)
 				continue
 			}
 			err = command(cfg, args...)
 			if err != nil {
-				fmt.Printf("error running command %s: %v\n", commandStr, err)
+				fmt.Printf(" > error running command %s: %v\n", commandStr, err)
 				continue
 			}
 			continue
@@ -62,7 +62,7 @@ func StartRepl(cfg CelaenoConfig) {
 
 		postCommand, ok := cfg.Commands["post-message"]
 		if !ok {
-			fmt.Println("could not get command Post Message")
+			fmt.Println(" > could not get command Post Message")
 			continue
 		}
 		err := postCommand(cfg, message)
@@ -74,6 +74,9 @@ func StartRepl(cfg CelaenoConfig) {
 				continue
 			} else if strings.Contains(err.Error(), "needs more arguments") {
 				fmt.Println(" > ")
+			} else if strings.Contains(err.Error(), "expired") {
+				fmt.Printf(" + \n > login timed out\n + \n")
+				continue
 			}
 			slog.Error("posting message", "error", err)
 			return
