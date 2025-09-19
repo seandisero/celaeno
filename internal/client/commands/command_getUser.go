@@ -6,7 +6,7 @@ import (
 	"github.com/seandisero/celaeno/internal/client/cliapi"
 )
 
-func CommandGetUser(cfg cliapi.CelaenoConfig, args ...string) error {
+func CommandGetUser(cfg *cliapi.CelaenoConfig, args ...string) error {
 	user, err := cfg.Client.GetUser()
 	if err != nil {
 		return fmt.Errorf("error getting user info: %w", err)

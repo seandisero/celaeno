@@ -6,7 +6,9 @@ import (
 )
 
 type Message struct {
-	Message string `json:"message"`
+	Message  string `json:"message"`
+	To       string `json:"to"`
+	Username string `json:"username"`
 }
 
 type ResponceError struct {

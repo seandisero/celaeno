@@ -10,14 +10,16 @@ import (
 	"github.com/seandisero/celaeno/internal/client/commands"
 )
 
-func mapCommands(cfg cliapi.CelaenoConfig) {
-	cfg.Commands["post-message"] = commands.CommandPostMessage
+func mapCommands(cfg *cliapi.CelaenoConfig) {
 	cfg.Commands["login"] = commands.CommandLogin
 	cfg.Commands["logout"] = commands.CommandLogout
 	cfg.Commands["whoami"] = commands.CommandGetUser
 	cfg.Commands["register"] = commands.CommandRegisterUser
 	cfg.Commands["deleteme"] = commands.CommandDeleteUser
 	cfg.Commands["set"] = commands.CommandSetUserAttr
+
+	cfg.Commands["connect"] = commands.CommandConnect
+	cfg.Commands["post-message"] = commands.CommandPostMessage
 }
 
 func main() {
@@ -27,13 +29,16 @@ func main() {
 	}
 
 	celaenoClient := cliapi.NewClient(5 * time.Second)
-	celaenoClient.URL = os.Getenv("SERVER_URL") + os.Getenv("PORT")
+	url := os.Getenv("SERVER_URL")
+	port := os.Getenv("PORT")
+	celaenoClient.URL = "http" + url + port
+	celaenoClient.WS_URL = "ws" + url + port
 
 	celaenoConfig := cliapi.CelaenoConfig{
 		Client:   celaenoClient,
-		Commands: make(map[string]func(cfg cliapi.CelaenoConfig, args ...string) error),
+		Commands: make(map[string]func(cfg *cliapi.CelaenoConfig, args ...string) error),
 	}
 
-	mapCommands(celaenoConfig)
-	cliapi.StartRepl(celaenoConfig)
+	mapCommands(&celaenoConfig)
+	cliapi.StartRepl(&celaenoConfig)
 }

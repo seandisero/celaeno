@@ -7,7 +7,7 @@ import (
 	"github.com/seandisero/celaeno/internal/shared"
 )
 
-func CommandSetUserAttr(cfg cliapi.CelaenoConfig, args ...string) error {
+func CommandSetUserAttr(cfg *cliapi.CelaenoConfig, args ...string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("not enough arguments passed into Set Display Name should be:\n/set displayname <new_displayname>")
 	}

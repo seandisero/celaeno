@@ -1,0 +1,34 @@
+package srvapi
+
+import (
+	"context"
+	"encoding/json"
+	"log/slog"
+	"net/http"
+
+	"github.com/seandisero/celaeno/internal/server"
+)
+
+func (api *ApiHandler) HandlerConnectToChat(w http.ResponseWriter, r *http.Request) {
+
+	type connectionRequest struct {
+		Username string `json:"username"`
+	}
+
+	var conreq connectionRequest
+	err := json.NewDecoder(r.Body).Decode(&conreq)
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, "could not decode boyd", err)
+		return
+	}
+
+	user, err := api.DB.GetUserByName(context.Background(), conreq.Username)
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, "could not Get user by name", err)
+		return
+	}
+
+	userID := string(user.ID)
+
+	api.ChatService.Chats[userID].Subscribe(w, r)
+}

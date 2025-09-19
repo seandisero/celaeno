@@ -3,7 +3,6 @@ package srvapi
 import (
 	"encoding/json"
 	"io"
-	"log/slog"
 	"net/http"
 
 	"github.com/seandisero/celaeno/internal/server"
@@ -11,23 +10,23 @@ import (
 )
 
 func (api *ApiHandler) HandlerPostMessage(w http.ResponseWriter, r *http.Request) {
-	data, err := io.ReadAll(r.Body)
+	body := http.MaxBytesReader(w, r.Body, 8192)
+	data, err := io.ReadAll(body)
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not read request body", err)
 		return
 	}
 
-	var params shared.Message
-	err = json.Unmarshal(data, &params)
+	var msg shared.Message
+	err = json.Unmarshal(data, &msg)
 	if err != nil {
-		slog.Error("error decoding request body: %v", "error", err)
-		server.RespondWithError(w, http.StatusInternalServerError, "could not decode request body", err)
+		server.RespondWithError(w, http.StatusInternalServerError, "could not unmarshal request body", err)
 		return
 	}
 
-	resp := shared.Message{
-		Message: params.Message,
+	for _, chat := range api.ChatService.Chats {
+		chat.PublishMessage(msg)
 	}
 
-	server.RespondWithJSON(w, http.StatusOK, resp)
+	server.RespondWithJSON(w, 200, http.NoBody)
 }

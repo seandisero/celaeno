@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 )
 
 type CelaenoConfig struct {
-	Client   CelaenoClient
-	Commands map[string]func(cfg CelaenoConfig, args ...string) error
+	Client   *CelaenoClient
+	Commands map[string]func(cfg *CelaenoConfig, args ...string) error
 }
 
 var LINE_DELIMINATOR = ">"
@@ -27,12 +30,33 @@ func getCommandString(s string) (string, []string, error) {
 	return input[0], input[1:], nil
 }
 
-func StartRepl(cfg CelaenoConfig) {
+func ExitApplication(exitSignal chan os.Signal) {
+	exit := <-exitSignal
+
+	fmt.Printf("\n > recieved signal to exit: %d\n", exit)
+
+	fmt.Printf(" > g")
+	for _, c := range "oodbuy" {
+		time.Sleep(200 * time.Millisecond)
+		fmt.Printf("%s", string(c))
+	}
+	fmt.Println()
+	os.Exit(0)
+}
+
+func StartRepl(cfg *CelaenoConfig) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go ExitApplication(sigs)
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		fmt.Printf(" %s ", LINE_DELIMINATOR)
+
 		if !scanner.Scan() {
+			fmt.Println("breaking")
 			break
 		}
 		message := scanner.Text()
@@ -79,7 +103,7 @@ func StartRepl(cfg CelaenoConfig) {
 				continue
 			}
 			slog.Error("posting message", "error", err)
-			return
+			continue
 		}
 	}
 }
