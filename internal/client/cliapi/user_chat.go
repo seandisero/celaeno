@@ -10,6 +10,9 @@ import (
 )
 
 func (cli *CelaenoClient) PostMessage(message *shared.Message) error {
+	if cli.Connection == nil {
+		return fmt.Errorf("you must make a connection or start a chat to post a message\n/create-chat\n/connect <username>")
+	}
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		return fmt.Errorf("could not marshal data")

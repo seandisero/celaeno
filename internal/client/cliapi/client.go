@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
+	"github.com/seandisero/celaeno/internal/client/screen"
 	"github.com/seandisero/celaeno/internal/shared"
 )
 
@@ -21,10 +22,12 @@ type CelaenoClient struct {
 	HttpClient *http.Client
 	Connection *websocket.Conn
 	Cancel     context.CancelFunc
+	Ctx        context.Context
 	WS_URL     string
 	URL        string
 	LocalUser  *shared.User
 	ChatRoom   string
+	Screen     *screen.Screen
 }
 
 func NewClient(timeout time.Duration) *CelaenoClient {
@@ -36,10 +39,35 @@ func NewClient(timeout time.Duration) *CelaenoClient {
 	return &client
 }
 
+func (cli *CelaenoClient) readConnection() (shared.Message, error) {
+	var message shared.Message
+	_, msg, err := cli.Connection.Reader(context.Background())
+	if err != nil {
+		if err == io.EOF {
+			return message, err
+		} else {
+			return message, nil
+		}
+	}
+
+	err = json.NewDecoder(msg).Decode(&message)
+	if err != nil {
+		return message, fmt.Errorf("Could not decode message %s", err.Error())
+	}
+
+	message.Incoming = true
+	if message.Username == cli.LocalUser.Username {
+		message.Incoming = false
+	}
+
+	return message, nil
+}
+
 func (cli *CelaenoClient) Listen() {
-	slog.Info("client is listening for messages")
-	defer cli.Cancel()
 	for {
+		if <-cli.Ctx.Done() {
+			return
+		}
 		_, msg, err := cli.Connection.Reader(context.Background())
 		if err != nil {
 			if err == io.EOF {
@@ -60,8 +88,12 @@ func (cli *CelaenoClient) Listen() {
 			break
 		}
 
-		fmt.Printf("\t\t\t\t< %s\n", message.Username)
-		fmt.Printf("\t\t\t\t%s  \n", message.Message)
+		message.Incoming = true
+		if message.Username == cli.LocalUser.Username {
+			message.Incoming = false
+		}
+		cli.Screen.ClearMessageBox()
+		cli.Screen.HandleMessage(message)
 	}
-	slog.Info("client is no longer listening for messages")
+	slog.Warn("client is no longer listening")
 }

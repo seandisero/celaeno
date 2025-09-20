@@ -16,7 +16,7 @@ func (cli *CelaenoClient) GetUser() (shared.User, error) {
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req)
+	auth.ApplyBearerToken(req, cli.LocalUser.Username)
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -76,7 +76,7 @@ func (cli *CelaenoClient) SetDisplayName(displayname string) (shared.User, error
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req)
+	auth.ApplyBearerToken(req, user.Username)
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {

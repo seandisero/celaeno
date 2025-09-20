@@ -40,36 +40,20 @@ func NewChat() *Chat {
 	return c
 }
 
-func (ch *Chat) HandleMessages(conn *websocket.Conn, sub *Subscriber) error {
-	slog.Info("handling messages")
-	defer conn.CloseNow()
-	ctx := conn.CloseRead(context.Background())
-	for {
-		select {
-		case msg := <-sub.Msg:
-			fmt.Printf(" > server got message %s", msg.Message)
-			err := writeTimeout(ctx, 5*time.Second, conn, msg)
-			if err != nil {
-				return err
-			}
-		case <-ctx.Done():
-			fmt.Println("no longer handling messages")
-			return ctx.Err()
-		}
-	}
-}
-
 func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	var mu sync.Mutex
 	var conn *websocket.Conn
 	s := &Subscriber{
 		Msg: make(chan shared.Message),
 	}
+	slog.Info("chat info", "chat", ch)
 	ch.addSubscriber(s)
 	defer ch.deleteSubscriber(s)
 
+	slog.Info("attemtin to accept websocket connection")
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
+		slog.Error("could not accept web socket connection", "error", err)
 		server.RespondWithError(w, http.StatusInternalServerError, "could not accept request: %w", err)
 		return err
 	}
@@ -81,7 +65,6 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	for {
 		select {
 		case msg := <-s.Msg:
-			fmt.Printf(" > server got message %s", msg.Message)
 			err := writeTimeout(ctx, 5*time.Second, conn, msg)
 			if err != nil {
 				return err

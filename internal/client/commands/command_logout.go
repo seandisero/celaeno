@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/seandisero/celaeno/internal/client/cliapi"
+	"github.com/seandisero/celaeno/internal/shared"
 )
 
 func CommandLogout(cfg *cliapi.CelaenoConfig, args ...string) error {
@@ -18,9 +19,13 @@ func CommandLogout(cfg *cliapi.CelaenoConfig, args ...string) error {
 
 	cfg.Client.Cancel()
 
-	fmt.Println(" ! ")
-	fmt.Println(" > you are now logged out")
-	fmt.Println(" ! ")
+	message := shared.Message{
+		Username: "celaeno",
+		Incoming: true,
+		Message:  "you are logged out",
+	}
+
+	cfg.Client.Screen.HandleMessage(message)
 
 	return nil
 }

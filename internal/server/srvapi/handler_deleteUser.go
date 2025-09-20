@@ -2,7 +2,6 @@ package srvapi
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -38,9 +37,6 @@ func (api *ApiHandler) HandlerDeleteUser(w http.ResponseWriter, r *http.Request)
 		server.RespondWithError(w, http.StatusInternalServerError, "invalid user uuid", err)
 		return
 	}
-
-	slog.Info(userUUID.String())
-	slog.Info(id.String())
 
 	if userUUID != id {
 		server.RespondWithError(w, http.StatusInternalServerError, "user id does not match id of delete request", err)

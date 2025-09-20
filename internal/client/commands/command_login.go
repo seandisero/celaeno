@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/seandisero/celaeno/internal/client/cliapi"
+	"github.com/seandisero/celaeno/internal/shared"
 )
 
 func CommandLogin(cfg *cliapi.CelaenoConfig, args ...string) error {
@@ -14,14 +15,24 @@ func CommandLogin(cfg *cliapi.CelaenoConfig, args ...string) error {
 	name := args[0]
 	password := args[1]
 
-	user, _, err := cfg.Client.Login(name, password)
+	user, err := cfg.Client.Login(name, password)
 	if err != nil {
 		return fmt.Errorf("error loggin in: %w", err)
 	}
 
-	fmt.Println(" + ")
-	fmt.Printf(" > logged in as %s\n", user.Username)
-	fmt.Println(" + ")
+	username := user.Username
+	if user.Displayname.Valid {
+		username = user.Displayname.String
+	}
+
+	message := shared.Message{
+		Username: "celaeno",
+		To:       cfg.Client.LocalUser.Username,
+		Message:  fmt.Sprintf("you are logged in as %s", username),
+		Incoming: true,
+	}
+
+	cfg.Client.Screen.HandleMessage(message)
 
 	return nil
 }

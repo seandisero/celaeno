@@ -12,12 +12,12 @@ import (
 	"github.com/seandisero/celaeno/internal/shared"
 )
 
-func (cli *CelaenoClient) Connect(name string) error {
+func (cli *CelaenoClient) CreateChat() error {
 	if cli.Connection != nil {
 		cli.Connection.CloseNow()
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	if cli.Cancel != nil {
 		cli.Cancel()
 	}
@@ -37,8 +37,7 @@ func (cli *CelaenoClient) Connect(name string) error {
 		HTTPHeader: header,
 	}
 
-	connectionURL := cli.URL + "/api/chat/connect/" + name
-	conn, resp, err := websocket.Dial(ctx, connectionURL, &options)
+	conn, resp, err := websocket.Dial(ctx, cli.URL+"/api/chat/ws", &options)
 	if err != nil {
 		return err
 	}

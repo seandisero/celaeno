@@ -2,7 +2,6 @@ package srvapi
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -10,19 +9,10 @@ import (
 )
 
 func (api *ApiHandler) HandlerConnectToChat(w http.ResponseWriter, r *http.Request) {
+	connectionName := r.PathValue("name")
 
-	type connectionRequest struct {
-		Username string `json:"username"`
-	}
-
-	var conreq connectionRequest
-	err := json.NewDecoder(r.Body).Decode(&conreq)
-	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, "could not decode boyd", err)
-		return
-	}
-
-	user, err := api.DB.GetUserByName(context.Background(), conreq.Username)
+	slog.Info("connectionName", "name", connectionName)
+	user, err := api.DB.GetUserByName(context.Background(), connectionName)
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not Get user by name", err)
 		return
@@ -30,5 +20,15 @@ func (api *ApiHandler) HandlerConnectToChat(w http.ResponseWriter, r *http.Reque
 
 	userID := string(user.ID)
 
-	api.ChatService.Chats[userID].Subscribe(w, r)
+	slog.Info("making user id into string", "id", userID)
+
+	chat, ok := api.ChatService.Chats[userID]
+	if !ok {
+		server.RespondWithError(w, http.StatusInternalServerError, "chat does not seem to exist", nil)
+
+	}
+
+	chat.Subscribe(w, r)
+
+	server.RespondWithJSON(w, http.StatusOK, http.NoBody)
 }

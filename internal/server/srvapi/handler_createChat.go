@@ -1,7 +1,6 @@
 package srvapi
 
 import (
-	"log/slog"
 	"net/http"
 
 	"github.com/seandisero/celaeno/internal/server"
@@ -15,8 +14,6 @@ func (api *ApiHandler) HandlerCreateChat(w http.ResponseWriter, r *http.Request)
 		server.RespondWithError(w, 400, "could not connect to websocket", err)
 		return
 	}
-
-	slog.Info("made connection to websocket")
 
 	newChat := chat.NewChat()
 	api.ChatService.Chats[userID] = newChat

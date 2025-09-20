@@ -8,11 +8,8 @@ import (
 )
 
 func (api ApiHandler) HandlerStatus(w http.ResponseWriter, r *http.Request) {
-	slog.Info("getting status")
-	slog.Info("Chats", "ApiHandler", api.ChatService.Chats)
-	for name, chat := range api.ChatService.Chats {
-		slog.Info("Chat", "name", name)
-		slog.Info("Chat", "chat", chat)
+	for key, _ := range api.ChatService.Chats {
+		slog.Info("chat name", "id", key)
 	}
 	server.RespondWithJSON(w, 200, http.NoBody)
 }

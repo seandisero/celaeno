@@ -61,8 +61,11 @@ func main() {
 	mux.HandleFunc("POST /api/login", api.HandlerLogin)
 	mux.Handle("GET /api/login", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerLoggedIn)))
 
-	mux.Handle("GET /api/chat/ws", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerCreateChat)))         // this is the login endpoint it creates a chat room for the user when they log in.
-	mux.Handle("GET /api/chat/connect", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerConnectToChat))) // this is the endpoint to connect to another users chat.
+	// this is the login endpoint it creates a chat room for the user when they log in.
+	mux.Handle("/api/chat/ws", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerCreateChat)))
+
+	// this is the endpoint to connect to another users chat.
+	mux.Handle("/api/chat/connect/{name}", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerConnectToChat)))
 	mux.HandleFunc("POST /api/chat/publish", api.HandlerPostMessage)
 
 	mux.HandleFunc("GET /status", api.HandlerStatus)

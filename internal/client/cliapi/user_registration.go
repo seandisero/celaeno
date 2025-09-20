@@ -79,7 +79,7 @@ func (cli *CelaenoClient) DeleteUser(password string) error {
 		return fmt.Errorf("error creating request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req)
+	auth.ApplyBearerToken(req, user.Username)
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -92,7 +92,7 @@ func (cli *CelaenoClient) DeleteUser(password string) error {
 		return fmt.Errorf("%s", respErr.Error)
 	}
 
-	auth.SetAuthToken("")
+	auth.SetAuthToken("", user.Username)
 
 	return nil
 }

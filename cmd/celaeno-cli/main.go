@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/seandisero/celaeno/internal/client/cliapi"
 	"github.com/seandisero/celaeno/internal/client/commands"
+	"github.com/seandisero/celaeno/internal/client/screen"
 )
 
 func mapCommands(cfg *cliapi.CelaenoConfig) {
@@ -19,6 +21,7 @@ func mapCommands(cfg *cliapi.CelaenoConfig) {
 	cfg.Commands["set"] = commands.CommandSetUserAttr
 
 	cfg.Commands["connect"] = commands.CommandConnect
+	cfg.Commands["create-chat"] = commands.CommandCreateChat
 	cfg.Commands["post-message"] = commands.CommandPostMessage
 }
 
@@ -33,6 +36,12 @@ func main() {
 	port := os.Getenv("PORT")
 	celaenoClient.URL = "http" + url + port
 	celaenoClient.WS_URL = "ws" + url + port
+
+	celaenoClient.Screen = screen.NewScreen(64)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	celaenoClient.Screen.Cancel = cancel
+	go celaenoClient.Screen.MessageLoop(ctx)
 
 	celaenoConfig := cliapi.CelaenoConfig{
 		Client:   celaenoClient,

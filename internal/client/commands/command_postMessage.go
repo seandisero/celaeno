@@ -12,6 +12,14 @@ func CommandPostMessage(cfg *cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("need more arguments to post message")
 	}
 
+	if cfg.Client.LocalUser == nil {
+		cfg.Client.Screen.HandleMessage(shared.Message{
+			Username: "echo",
+			Message:  args[0],
+		})
+		return fmt.Errorf("not logged in")
+	}
+
 	name := cfg.Client.LocalUser.Username
 	to := cfg.Client.ChatRoom
 
