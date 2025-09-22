@@ -13,12 +13,12 @@ const (
 	tokenFileMode = 0600
 )
 
-func getTokenFilePath() (string, error) {
+func getTokenFilePath(username string) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("could not find user home dir: %w", err)
 	}
-	return filepath.Join(homeDir, ".config", "celaeno", tokenFileName), nil
+	return filepath.Join(homeDir, ".config", "celaeno", username+"_"+tokenFileName), nil
 }
 
 func makeConfigIfNotExists(filePath string) {
@@ -32,14 +32,14 @@ func makeConfigIfNotExists(filePath string) {
 	}
 }
 
-func writeDataToTokenFile(data []byte) error {
-	filePath, err := getTokenFilePath()
+func writeDataToTokenFile(data []byte, username string) error {
+	filePath, err := getTokenFilePath(username)
 	if err != nil {
 		return fmt.Errorf("could not get token file path")
 	}
 	file, err := os.OpenFile(filepath.Clean(filePath), os.O_CREATE|os.O_TRUNC, tokenFileMode)
 	if err != nil {
-		slog.Info("error creating file")
+		slog.Error("error creating file", "error", err)
 		return err
 	}
 	defer file.Close()
@@ -51,28 +51,31 @@ func writeDataToTokenFile(data []byte) error {
 	return nil
 }
 
-func AuthToken() (string, error) {
-	return findAuthToken()
+func AuthToken(username string) (string, error) {
+	return findAuthToken(username)
 }
 
-func SetAuthToken(token string) error {
-	return saveTokenToFile(token)
+func SetAuthToken(token string, username string) error {
+	return saveTokenToFile(token, username)
 }
 
-func saveTokenToFile(token string) error {
-	filePath, err := getTokenFilePath()
+func saveTokenToFile(token string, username string) error {
+	filePath, err := getTokenFilePath(username)
 	if err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
 	makeConfigIfNotExists(filePath)
-	err = writeDataToTokenFile([]byte(token))
+	err = writeDataToTokenFile([]byte(token), username)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func ApplyBearerToken(r *http.Request) error {
-	authToken, err := findAuthToken()
+func ApplyBearerToken(r *http.Request, username string) error {
+	authToken, err := findAuthToken(username)
 	if err != nil {
 		return fmt.Errorf("could not get auth token: %w", err)
 	}
@@ -82,8 +85,19 @@ func ApplyBearerToken(r *http.Request) error {
 	return nil
 }
 
-func findAuthToken() (string, error) {
-	filePath, err := getTokenFilePath()
+func ApplyBearerTokenToHeader(header *http.Header, username string) error {
+	authToken, err := findAuthToken(username)
+	if err != nil {
+		return fmt.Errorf("could not get auth token: %w", err)
+	}
+
+	bearerToken := "Bearer " + authToken
+	header.Set("Authorization", bearerToken)
+	return nil
+}
+
+func findAuthToken(username string) (string, error) {
+	filePath, err := getTokenFilePath(username)
 	if err != nil {
 		return "", err
 	}

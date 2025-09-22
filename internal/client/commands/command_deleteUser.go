@@ -8,7 +8,7 @@ import (
 	"github.com/seandisero/celaeno/internal/client/cliapi"
 )
 
-func CommandDeleteUser(cfg cliapi.CelaenoConfig, args ...string) error {
+func CommandDeleteUser(cfg *cliapi.CelaenoConfig, args ...string) error {
 
 	fmt.Printf(" > enter your password to delete user: ")
 	scanner := bufio.NewScanner(os.Stdin)

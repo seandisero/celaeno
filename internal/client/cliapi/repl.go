@@ -5,12 +5,18 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/coder/websocket"
+	"github.com/seandisero/celaeno/internal/client/screen"
 )
 
 type CelaenoConfig struct {
-	Client   CelaenoClient
-	Commands map[string]func(cfg CelaenoConfig, args ...string) error
+	Client   *CelaenoClient
+	Commands map[string]func(cfg *CelaenoConfig, args ...string) error
 }
 
 var LINE_DELIMINATOR = ">"
@@ -27,15 +33,54 @@ func getCommandString(s string) (string, []string, error) {
 	return input[0], input[1:], nil
 }
 
-func StartRepl(cfg CelaenoConfig) {
+func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
+	<-exitSignal
+
+	cfg.Client.Screen.Cancel()
+	if cfg.Client.Connection != nil {
+		fmt.Println("closing client connection")
+		err := cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
+		if err != nil {
+			slog.Error("error occerred in connection", "error", err)
+			return
+		}
+	}
+
+	fmt.Printf(" > g")
+	for _, c := range "oodbuy" {
+		time.Sleep(200 * time.Millisecond)
+		fmt.Printf("%s", string(c))
+	}
+	fmt.Println()
+	os.Exit(0)
+}
+
+func StartRepl(cfg *CelaenoConfig) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	go cfg.ExitApplication(sigs)
+
 	scanner := bufio.NewScanner(os.Stdin)
 
+	for range cfg.Client.Screen.Width {
+		fmt.Printf("-")
+	}
+	fmt.Println()
+
 	for {
-		fmt.Printf(" %s ", LINE_DELIMINATOR)
+
 		if !scanner.Scan() {
+			fmt.Println("breaking")
 			break
 		}
 		message := scanner.Text()
+
+		err := screen.ClearInput(message)
+		if err != nil {
+			slog.Error("error clearing input", "error", err)
+			return
+		}
 
 		if message == "" {
 			continue
@@ -65,21 +110,21 @@ func StartRepl(cfg CelaenoConfig) {
 			fmt.Println(" > could not get command Post Message")
 			continue
 		}
-		err := postCommand(cfg, message)
+		err = postCommand(cfg, message)
 		if err != nil {
 			if strings.Contains(err.Error(), "no authorization token") {
-				fmt.Println(" > ")
 				fmt.Println(" > you must be logged in")
-				fmt.Println(" > ")
 				continue
 			} else if strings.Contains(err.Error(), "needs more arguments") {
 				fmt.Println(" > ")
 			} else if strings.Contains(err.Error(), "expired") {
 				fmt.Printf(" + \n > login timed out\n + \n")
 				continue
+			} else if strings.Contains(err.Error(), "not logged in") {
+				continue
 			}
 			slog.Error("posting message", "error", err)
-			return
+			continue
 		}
 	}
 }

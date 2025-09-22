@@ -1,3 +1,3 @@
 go build ./cmd/celaeno-server
 
-go build ./cmd/celaeno-cli
+go build -o celaeno ./cmd/celaeno-cli 

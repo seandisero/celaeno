@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/seandisero/celaeno/internal/client/cliapi"
+	"github.com/seandisero/celaeno/internal/shared"
 )
 
-func CommandLogin(cfg cliapi.CelaenoConfig, args ...string) error {
+func CommandLogin(cfg *cliapi.CelaenoConfig, args ...string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("not enough args for login: example \n/login <name> <password>")
 	}
@@ -19,9 +20,24 @@ func CommandLogin(cfg cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("error loggin in: %w", err)
 	}
 
-	fmt.Println(" + ")
-	fmt.Printf(" > logged in as %s\n", user.Username)
-	fmt.Println(" + ")
+	username := user.Username
+	if user.Displayname.Valid {
+		username = user.Displayname.String
+	}
+
+	message := shared.Message{
+		Username: "celaeno",
+		To:       cfg.Client.LocalUser.Username,
+		Message:  fmt.Sprintf("you are logged in as %s", username),
+		Incoming: true,
+	}
+
+	cfg.Client.Screen.HandleMessage(message)
+
+	err = cfg.Client.SetupCipher()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

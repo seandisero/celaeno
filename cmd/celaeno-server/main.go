@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/seandisero/celaeno/internal/server/chat"
 	"github.com/seandisero/celaeno/internal/server/database"
 	"github.com/seandisero/celaeno/internal/server/srvapi"
 
@@ -43,21 +44,32 @@ func main() {
 	}
 	defer db.Close()
 
+	chatServer := chat.NewChatServer()
+
 	api := srvapi.ApiHandler{}
 	api.DB = database.New(db)
+	api.ChatService = chatServer
 	api.JwtSecret = jwtSecret
 
 	mux := http.NewServeMux()
 	mux.Handle("/", api)
 
-	mux.Handle("POST /app", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerPostMessage)))
-
 	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
-	mux.Handle("PUT /api/users/{id}", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerSetDisplayName)))
-	mux.Handle("DELETE /api/users/{id}", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerDeleteUser)))
+	mux.HandleFunc("PUT /api/users/{id}", api.MiddlewareValidateUser(api.HandlerSetDisplayName))
+	mux.Handle("DELETE /api/users/{id}", api.MiddlewareValidateUser(api.HandlerDeleteUser))
 
 	mux.HandleFunc("POST /api/login", api.HandlerLogin)
-	mux.Handle("GET /api/login", api.MiddlewareValidateUser(http.HandlerFunc(api.HandlerLoggedIn)))
+	mux.Handle("GET /api/login", api.MiddlewareValidateUser(api.HandlerLoggedIn))
+
+	// this is the login endpoint it creates a chat room for the user when they log in.
+	mux.Handle("/api/chat/create", api.MiddlewareValidateUser(api.HandlerCreateChat))
+
+	// this is the endpoint to connect to another users chat.
+	mux.Handle("/api/chat/connect/{name}", api.MiddlewareValidateUser(api.HandlerConnectToChat))
+	// server is write only, so we can just post to an endpoint
+	mux.Handle("POST /api/chat/publish", api.MiddlewareValidateUser(api.HandlerPostMessage))
+
+	mux.HandleFunc("GET /status", api.HandlerStatus)
 
 	server := http.Server{
 		Handler:           mux,

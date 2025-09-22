@@ -2,7 +2,6 @@ package srvapi
 
 import (
 	"encoding/json"
-	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -28,6 +27,11 @@ func (api *ApiHandler) HandlerDeleteUser(w http.ResponseWriter, r *http.Request)
 	// NOTE: I realized that if I want to be able to delete other users as an admin later without goin onto turso
 	// then I cant just use the auth token id to delet the user.
 	userID, err := GetUserIDFromContext(r.Context())
+	if err != nil {
+		server.RespondWithError(w, http.StatusInternalServerError, "could not get user from context", err)
+		return
+	}
+
 	id, err := uuid.Parse(r.PathValue("id"))
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "invalid uuid", err)
@@ -38,9 +42,6 @@ func (api *ApiHandler) HandlerDeleteUser(w http.ResponseWriter, r *http.Request)
 		server.RespondWithError(w, http.StatusInternalServerError, "invalid user uuid", err)
 		return
 	}
-
-	slog.Info(userUUID.String())
-	slog.Info(id.String())
 
 	if userUUID != id {
 		server.RespondWithError(w, http.StatusInternalServerError, "user id does not match id of delete request", err)

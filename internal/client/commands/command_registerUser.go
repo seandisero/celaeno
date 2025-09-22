@@ -6,7 +6,7 @@ import (
 	"github.com/seandisero/celaeno/internal/client/cliapi"
 )
 
-func CommandRegisterUser(cfg cliapi.CelaenoConfig, args ...string) error {
+func CommandRegisterUser(cfg *cliapi.CelaenoConfig, args ...string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("not enough args to register user should be \nregister <name> <password>")
 	}

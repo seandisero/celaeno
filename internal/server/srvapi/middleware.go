@@ -14,8 +14,8 @@ type contextKey string
 
 const UserContextKey contextKey = "user"
 
-func (api ApiHandler) MiddlewareValidateUser(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func (api ApiHandler) MiddlewareValidateUser(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		token, err := auth.GetBearerToken(r.Header)
 		if err != nil {
 			server.RespondWithError(w, http.StatusUnauthorized, "no authorization token", err)
@@ -33,7 +33,7 @@ func (api ApiHandler) MiddlewareValidateUser(next http.Handler) http.Handler {
 		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
-	})
+	}
 }
 
 func GetUserIDFromContext(ctx context.Context) (string, error) {
