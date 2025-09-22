@@ -39,7 +39,11 @@ func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
 	cfg.Client.Screen.Cancel()
 	if cfg.Client.Connection != nil {
 		fmt.Println("closing client connection")
-		cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
+		err := cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
+		if err != nil {
+			slog.Error("error occerred in connection", "error", err)
+			return
+		}
 	}
 
 	fmt.Printf(" > g")
@@ -72,7 +76,11 @@ func StartRepl(cfg *CelaenoConfig) {
 		}
 		message := scanner.Text()
 
-		screen.ClearInput(message)
+		err := screen.ClearInput(message)
+		if err != nil {
+			slog.Error("error clearing input", "error", err)
+			return
+		}
 
 		if message == "" {
 			continue
@@ -102,7 +110,7 @@ func StartRepl(cfg *CelaenoConfig) {
 			fmt.Println(" > could not get command Post Message")
 			continue
 		}
-		err := postCommand(cfg, message)
+		err = postCommand(cfg, message)
 		if err != nil {
 			if strings.Contains(err.Error(), "no authorization token") {
 				fmt.Println(" > you must be logged in")

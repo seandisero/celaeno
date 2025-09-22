@@ -2,6 +2,8 @@ package cliapi
 
 import (
 	"context"
+	"crypto/cipher"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,12 +24,12 @@ type CelaenoClient struct {
 	HttpClient *http.Client
 	Connection *websocket.Conn
 	Cancel     context.CancelFunc
-	Ctx        context.Context
-	WS_URL     string
+	ConnCtx    context.Context
 	URL        string
 	LocalUser  *shared.User
 	ChatRoom   string
 	Screen     *screen.Screen
+	Block      *cipher.Block
 }
 
 func NewClient(timeout time.Duration) *CelaenoClient {
@@ -36,6 +38,7 @@ func NewClient(timeout time.Duration) *CelaenoClient {
 			Timeout: timeout,
 		},
 	}
+
 	return &client
 }
 
@@ -46,17 +49,17 @@ func (cli *CelaenoClient) readConnection() (shared.Message, error) {
 		if err == io.EOF {
 			return message, err
 		} else {
-			return message, nil
+			return message, err
 		}
 	}
 
 	err = json.NewDecoder(msg).Decode(&message)
 	if err != nil {
-		return message, fmt.Errorf("Could not decode message %s", err.Error())
+		return message, fmt.Errorf("could not decode message %s", err.Error())
 	}
 
 	message.Incoming = true
-	if message.Username == cli.LocalUser.Username {
+	if message.Username == cli.LocalUser.Username || message.Username == cli.LocalUser.Displayname.String {
 		message.Incoming = false
 	}
 
@@ -64,36 +67,41 @@ func (cli *CelaenoClient) readConnection() (shared.Message, error) {
 }
 
 func (cli *CelaenoClient) Listen() {
+outer:
 	for {
-		if <-cli.Ctx.Done() {
-			return
-		}
-		_, msg, err := cli.Connection.Reader(context.Background())
-		if err != nil {
-			if err == io.EOF {
-				break
-			} else {
+		select {
+		case <-cli.ConnCtx.Done():
+			break outer
+		default:
+			message, err := cli.readConnection()
+			if err != nil {
+				if err == io.EOF {
+					break outer
+				} else {
+					continue
+				}
+			}
+			fmt.Println(message.Message)
+
+			messageBytes, err := base64.StdEncoding.DecodeString(message.Message)
+			if err != nil {
+				fmt.Println("could not decode string: %w", err)
+			}
+			decryption, err := cli.Decrypt(messageBytes)
+			if err != nil {
+				fmt.Printf("could not decrypt message: %v", err)
 				continue
 			}
-		}
+			message.Message = string(decryption)
 
-		var message shared.Message
-		err = json.NewDecoder(msg).Decode(&message)
-		if err != nil {
-			fmt.Printf("Could not decode message %s", err.Error())
-			continue
+			cli.Screen.ClearMessageBox()
+			cli.Screen.HandleMessage(message)
 		}
-		if message.Message == "/exit" {
-			cli.Cancel()
-			break
-		}
-
-		message.Incoming = true
-		if message.Username == cli.LocalUser.Username {
-			message.Incoming = false
-		}
-		cli.Screen.ClearMessageBox()
-		cli.Screen.HandleMessage(message)
+	}
+	err := cli.Connection.CloseNow()
+	if err != nil {
+		slog.Error("Failed to close connection", "error", err)
+		return
 	}
 	slog.Warn("client is no longer listening")
 }

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/seandisero/celaeno/internal/client/cliapi"
@@ -12,6 +13,11 @@ func CommandPostMessage(cfg *cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("need more arguments to post message")
 	}
 
+	encryptedMessage, err := cfg.Client.Encrypt([]byte(args[0]))
+	if err != nil {
+		return err
+	}
+
 	if cfg.Client.LocalUser == nil {
 		cfg.Client.Screen.HandleMessage(shared.Message{
 			Username: "echo",
@@ -21,15 +27,20 @@ func CommandPostMessage(cfg *cliapi.CelaenoConfig, args ...string) error {
 	}
 
 	name := cfg.Client.LocalUser.Username
+	if cfg.Client.LocalUser.Displayname.Valid {
+		name = cfg.Client.LocalUser.Displayname.String
+	}
 	to := cfg.Client.ChatRoom
 
+	encrypted := base64.StdEncoding.EncodeToString(encryptedMessage)
+
 	message := shared.Message{
-		Message:  args[0],
+		Message:  encrypted,
 		Username: name,
 		To:       to,
 	}
 
-	err := cfg.Client.PostMessage(&message)
+	err = cfg.Client.PostMessage(&message)
 	if err != nil {
 		return err
 	}

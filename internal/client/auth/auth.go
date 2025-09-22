@@ -67,6 +67,9 @@ func saveTokenToFile(token string, username string) error {
 
 	makeConfigIfNotExists(filePath)
 	err = writeDataToTokenFile([]byte(token), username)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

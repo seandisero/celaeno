@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/seandisero/celaeno/internal/client/auth"
 	"github.com/seandisero/celaeno/internal/shared"
 )
 
@@ -23,6 +24,11 @@ func (cli *CelaenoClient) PostMessage(message *shared.Message) error {
 	req, err := http.NewRequest("POST", cli.URL+"/api/chat/publish", data)
 	if err != nil {
 		return fmt.Errorf("unsucessful creation of request: %w", err)
+	}
+
+	err = auth.ApplyBearerToken(req, cli.LocalUser.Username)
+	if err != nil {
+		return err
 	}
 
 	resp, err := cli.HttpClient.Do(req)

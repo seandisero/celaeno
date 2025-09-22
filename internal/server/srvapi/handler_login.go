@@ -46,10 +46,11 @@ func (api *ApiHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	server.RespondWithJSON(w, http.StatusOK, loginResponce{
 		User: shared.User{
-			ID:        user.ID,
-			Username:  user.Username,
-			CreatedAt: user.CreatedAt,
-			UpdatedAt: user.UpdatedAt,
+			ID:          user.ID,
+			Username:    user.Username,
+			Displayname: user.Displayname,
+			CreatedAt:   user.CreatedAt,
+			UpdatedAt:   user.UpdatedAt,
 		},
 		Token: token,
 	})

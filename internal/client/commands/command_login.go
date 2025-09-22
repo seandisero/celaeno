@@ -34,5 +34,10 @@ func CommandLogin(cfg *cliapi.CelaenoConfig, args ...string) error {
 
 	cfg.Client.Screen.HandleMessage(message)
 
+	err = cfg.Client.SetupCipher()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

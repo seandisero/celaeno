@@ -3,7 +3,6 @@ package screen
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"math"
 	"os"
 	"strings"
@@ -43,7 +42,6 @@ func ClearInput(message string) error {
 		fmt.Print("\033[A")
 		fmt.Print("\033[K")
 	}
-	slog.Info("deleting lines", "num lines", lines+1)
 	return nil
 }
 
@@ -85,6 +83,7 @@ func (s *Screen) printToScreen(message shared.Message, incoming bool) error {
 			s.buffer += fmt.Sprintln(" > ", line)
 		}
 	} else {
+		s.ClearMessageBox()
 		for _, line := range lines {
 			bufferRight(s, line)
 		}

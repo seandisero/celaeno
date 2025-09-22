@@ -25,7 +25,7 @@ func (api *ApiHandler) HandlerPostMessage(w http.ResponseWriter, r *http.Request
 	}
 
 	for _, chat := range api.ChatService.Chats {
-		chat.PublishMessage(msg)
+		chat.PublishMessage(data)
 	}
 
 	server.RespondWithJSON(w, 200, http.NoBody)

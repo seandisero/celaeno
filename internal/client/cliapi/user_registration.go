@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/seandisero/celaeno/internal/client/auth"
@@ -79,7 +80,10 @@ func (cli *CelaenoClient) DeleteUser(password string) error {
 		return fmt.Errorf("error creating request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req, user.Username)
+	err = auth.ApplyBearerToken(req, user.Username)
+	if err != nil {
+		return err
+	}
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -89,10 +93,16 @@ func (cli *CelaenoClient) DeleteUser(password string) error {
 	if resp.StatusCode > 299 {
 		var respErr shared.ResponceError
 		err = json.NewDecoder(resp.Body).Decode(&respErr)
+		if err != nil {
+			slog.Error("json could not decode responce error", "error", err)
+		}
 		return fmt.Errorf("%s", respErr.Error)
 	}
 
-	auth.SetAuthToken("", user.Username)
+	err = auth.SetAuthToken("", user.Username)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

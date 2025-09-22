@@ -2,7 +2,6 @@ package chat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,7 +10,6 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/seandisero/celaeno/internal/server"
-	"github.com/seandisero/celaeno/internal/shared"
 )
 
 type ChatService struct {
@@ -24,7 +22,7 @@ type Chat struct {
 }
 
 type Subscriber struct {
-	Msg chan shared.Message
+	Msg chan []byte
 }
 
 func NewChatServer() *ChatService {
@@ -44,13 +42,12 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	var mu sync.Mutex
 	var conn *websocket.Conn
 	s := &Subscriber{
-		Msg: make(chan shared.Message),
+		Msg: make(chan []byte),
 	}
-	slog.Info("chat info", "chat", ch)
+
 	ch.addSubscriber(s)
 	defer ch.deleteSubscriber(s)
 
-	slog.Info("attemtin to accept websocket connection")
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		slog.Error("could not accept web socket connection", "error", err)
@@ -62,6 +59,9 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	mu.Unlock()
 
 	ctx := conn.CloseRead(context.Background())
+
+	go pingLoop(conn, ctx, 10*time.Second)
+
 	for {
 		select {
 		case msg := <-s.Msg:
@@ -76,6 +76,40 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	}
 }
 
+func pingLoop(c *websocket.Conn, ctx context.Context, duration time.Duration) {
+	ticker := time.NewTicker(duration)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if c == nil {
+				continue
+			}
+		}
+
+		if err := pingConnection(c); err != nil {
+			slog.Error("unsuccessful ping, closing connection")
+			err := c.CloseNow()
+			if err != nil {
+				slog.Error("failed to close now from connection in ping loop")
+				return
+			}
+			return
+		}
+	}
+}
+
+func pingConnection(c *websocket.Conn) error {
+	pctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.Ping(pctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (ch *Chat) deleteSubscriber(s *Subscriber) {
 	ch.SubMu.Lock()
 	delete(ch.Subs, s)
@@ -88,31 +122,23 @@ func (ch *Chat) addSubscriber(s *Subscriber) {
 	ch.SubMu.Unlock()
 }
 
-func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg shared.Message) error {
+func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn, msg []byte) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	data, err := json.Marshal(msg)
-	if err != nil {
-		return err
-	}
+	// data, err := json.Marshal(msg)
+	// if err != nil {
+	// return err
+	// }
 
-	return c.Write(ctx, websocket.MessageText, data)
+	return c.Write(ctx, websocket.MessageText, msg)
 }
 
-func (ch *Chat) PublishMessage(message shared.Message) {
+func (ch *Chat) PublishMessage(message []byte) {
 	ch.SubMu.Lock()
 	defer ch.SubMu.Unlock()
 
 	for s := range ch.Subs {
 		s.Msg <- message
-	}
-}
-
-func (ch *Chat) processMessage(ctx context.Context, msg shared.Message) {
-	for sub := range ch.Subs {
-		ch.SubMu.Lock()
-		sub.Msg <- msg
-		ch.SubMu.Unlock()
 	}
 }

@@ -16,7 +16,10 @@ func (cli *CelaenoClient) GetUser() (shared.User, error) {
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req, cli.LocalUser.Username)
+	err = auth.ApplyBearerToken(req, cli.LocalUser.Username)
+	if err != nil {
+		return shared.User{}, err
+	}
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -76,7 +79,10 @@ func (cli *CelaenoClient) SetDisplayName(displayname string) (shared.User, error
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}
 
-	auth.ApplyBearerToken(req, user.Username)
+	err = auth.ApplyBearerToken(req, user.Username)
+	if err != nil {
+		return shared.User{}, err
+	}
 
 	resp, err := cli.HttpClient.Do(req)
 	if err != nil {
@@ -89,7 +95,7 @@ func (cli *CelaenoClient) SetDisplayName(displayname string) (shared.User, error
 		if err = json.NewDecoder(resp.Body).Decode(&ee); err != nil {
 			return shared.User{}, fmt.Errorf("error decoding error responce %w", err)
 		}
-		return shared.User{}, fmt.Errorf("error returned from server: %s\n", ee.Error)
+		return shared.User{}, fmt.Errorf("error returned from server: %s", ee.Error)
 	}
 
 	var data shared.User

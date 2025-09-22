@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/seandisero/celaeno/internal/client/auth"
@@ -37,6 +38,9 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 	if resp.StatusCode > 299 {
 		var respErr shared.ResponceError
 		err = json.NewDecoder(resp.Body).Decode(&respErr)
+		if err != nil {
+			slog.Error("json could not decode responce error", "error", err)
+		}
 		return shared.User{}, fmt.Errorf("%s", respErr.Error)
 	}
 
@@ -56,6 +60,8 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 	if err != nil {
 		return shared.User{}, err
 	}
+
+	fmt.Printf("displayname: %s", loginData.User.Displayname.String)
 
 	user := shared.User{
 		ID:          loginData.User.ID,

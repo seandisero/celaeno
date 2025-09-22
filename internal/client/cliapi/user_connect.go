@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/coder/websocket"
 	"github.com/seandisero/celaeno/internal/client/auth"
@@ -14,14 +14,19 @@ import (
 
 func (cli *CelaenoClient) Connect(name string) error {
 	if cli.Connection != nil {
-		cli.Connection.CloseNow()
+		err := cli.Connection.CloseNow()
+		if err != nil {
+			slog.Error("error clearing input", "error", err)
+			return err
+		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	if cli.Cancel != nil {
+	if cli.ConnCtx != nil {
 		cli.Cancel()
 	}
 	cli.Cancel = cancel
+	cli.ConnCtx = ctx
 
 	header := http.Header{}
 	token, err := auth.AuthToken(cli.LocalUser.Username)
@@ -45,6 +50,9 @@ func (cli *CelaenoClient) Connect(name string) error {
 	if resp.StatusCode > 299 {
 		var respErr shared.ResponceError
 		err = json.NewDecoder(resp.Body).Decode(&respErr)
+		if err != nil {
+			slog.Error("json could not decode responce error", "error", err)
+		}
 		return fmt.Errorf("%s", respErr.Error)
 	}
 

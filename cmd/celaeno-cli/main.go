@@ -18,6 +18,7 @@ func mapCommands(cfg *cliapi.CelaenoConfig) {
 	cfg.Commands["whoami"] = commands.CommandGetUser
 	cfg.Commands["register"] = commands.CommandRegisterUser
 	cfg.Commands["deleteme"] = commands.CommandDeleteUser
+
 	cfg.Commands["set"] = commands.CommandSetUserAttr
 
 	cfg.Commands["connect"] = commands.CommandConnect
@@ -35,7 +36,7 @@ func main() {
 	url := os.Getenv("SERVER_URL")
 	port := os.Getenv("PORT")
 	celaenoClient.URL = "http" + url + port
-	celaenoClient.WS_URL = "ws" + url + port
+	// celaenoClient.WS_URL = "ws" + url + port
 
 	celaenoClient.Screen = screen.NewScreen(64)
 

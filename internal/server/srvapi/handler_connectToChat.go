@@ -24,11 +24,13 @@ func (api *ApiHandler) HandlerConnectToChat(w http.ResponseWriter, r *http.Reque
 
 	chat, ok := api.ChatService.Chats[userID]
 	if !ok {
-		server.RespondWithError(w, http.StatusInternalServerError, "chat does not seem to exist", nil)
-
+		slog.Error("user is attempting to connect with chat that does not exist", "id", userID)
+		return
 	}
 
-	chat.Subscribe(w, r)
-
-	server.RespondWithJSON(w, http.StatusOK, http.NoBody)
+	err = chat.Subscribe(w, r)
+	if err != nil {
+		slog.Error("user fuled to subscribe")
+		return
+	}
 }
