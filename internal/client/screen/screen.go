@@ -17,7 +17,6 @@ const widthBuffer = 2
 type Screen struct {
 	Width  int
 	input  chan shared.Message
-	Cancel func()
 	buffer string
 }
 
@@ -30,7 +29,7 @@ func NewScreen(width int) *Screen {
 	return scrn
 }
 
-func ClearInput(message string) error {
+func (s *Screen) ClearInput(message string) error {
 	width, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		return err
@@ -38,9 +37,8 @@ func ClearInput(message string) error {
 	totalLength := len(message)
 	lines := int(math.Ceil(float64(totalLength) / float64(width)))
 
-	for range lines + 1 {
-		fmt.Print("\033[A")
-		fmt.Print("\033[K")
+	for range lines {
+		s.ClearMessageBox()
 	}
 	return nil
 }
@@ -65,9 +63,17 @@ func (s *Screen) MessageLoop(ctx context.Context) error {
 		case <-ctx.Done():
 			fmt.Println("leaving message loop")
 			return nil
-
 		}
 	}
+}
+
+func (s *Screen) CelaenoResponse(message string) {
+	celMessage := shared.Message{
+		Username: "celaeno",
+		Message:  message,
+		Incoming: true,
+	}
+	s.HandleMessage(celMessage)
 }
 
 func (s *Screen) printToScreen(message shared.Message, incoming bool) error {
@@ -79,6 +85,7 @@ func (s *Screen) printToScreen(message shared.Message, incoming bool) error {
 	lines = append([]string{fmt.Sprintf(":%s:", message.Username)}, lines...)
 
 	if !incoming {
+		s.ClearMessageBox()
 		for _, line := range lines {
 			s.buffer += fmt.Sprintln(" > ", line)
 		}
@@ -147,4 +154,18 @@ func (s *Screen) splitsToLines(splits []string) ([]string, error) {
 	line := strings.Join(splits[lastPosition:], " ")
 	lines = append(lines, line)
 	return lines, nil
+}
+
+func (s *Screen) PrintWelcomeMessage() {
+	fmt.Println("welcome to celaeno!")
+	fmt.Println("the encrypted terminal messaging app")
+	fmt.Println()
+	fmt.Println("commands:")
+	fmt.Println()
+	fmt.Println("to register a new user:")
+	fmt.Println("/register <username> <password>")
+	fmt.Println()
+	fmt.Println("to login:")
+	fmt.Println("/login <username> <password>")
+	fmt.Println()
 }

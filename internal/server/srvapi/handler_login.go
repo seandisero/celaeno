@@ -13,17 +13,14 @@ import (
 func (api *ApiHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 	var loginRequest shared.LoginRequest
 
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&loginRequest)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&loginRequest); err != nil {
 		server.RespondWithError(w, http.StatusBadRequest, "could not decode request", err)
 		return
 	}
-	defer r.Body.Close()
 
 	user, err := api.DB.GetUserByName(r.Context(), loginRequest.Name)
 	if err != nil {
-		server.RespondWithError(w, http.StatusBadRequest, "could not find user", err)
+		server.RespondWithError(w, http.StatusUnauthorized, "authentication error", err)
 		return
 	}
 
@@ -35,7 +32,7 @@ func (api *ApiHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	token, err := auth.MakeJWT(user.ID, api.JwtSecret, 8*time.Hour)
 	if err != nil {
-		server.RespondWithError(w, http.StatusInternalServerError, "could not sign string for web token", err)
+		server.RespondWithError(w, http.StatusInternalServerError, "could not make json web token", err)
 		return
 	}
 

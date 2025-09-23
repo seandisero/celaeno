@@ -81,7 +81,7 @@ func ValidateJWT(tokenString, tokenSecret string) (string, error) {
 		return "", err
 	}
 	if issuer != string(TokenTypeAccess) {
-		return "", fmt.Errorf("invalid issure")
+		return "", fmt.Errorf("invalid issuer")
 	}
 
 	return userID, nil

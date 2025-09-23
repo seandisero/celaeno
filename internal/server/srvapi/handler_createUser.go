@@ -14,16 +14,8 @@ import (
 )
 
 func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request) {
-	type request struct {
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}
-
-	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close()
-
-	var req request
-	err := decoder.Decode(&req)
+	var req shared.LoginRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not decode request", err)
 		return
@@ -31,7 +23,7 @@ func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request)
 
 	_, err = api.DB.GetUserByName(r.Context(), req.Name)
 	if err == nil {
-		slog.Error("user already exists")
+		slog.Error("user already exists", "user", req.Name)
 		server.RespondWithError(w, http.StatusConflict, "user already exists", nil)
 		return
 	}
@@ -39,7 +31,7 @@ func (api *ApiHandler) HandlerCreateUser(w http.ResponseWriter, r *http.Request)
 	id := uuid.New()
 	hashedPassword, err := auth.HashPassword(req.Password)
 	if err != nil {
-		slog.Error("trying to hash passwrod", "error", err)
+		slog.Error("failed to hash passwrod", "error", err)
 		server.RespondWithError(w, http.StatusInternalServerError, "server error", err)
 		return
 	}

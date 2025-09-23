@@ -57,6 +57,7 @@ func (cli *CelaenoClient) CreateChat() error {
 	}
 
 	cli.Connection = conn
+	cli.ChatRoom = cli.LocalUser.Username
 	go cli.Listen()
 
 	return nil

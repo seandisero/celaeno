@@ -14,11 +14,8 @@ func (api *ApiHandler) HandlerDeleteUser(w http.ResponseWriter, r *http.Request)
 		Password string `json:"password"`
 	}
 
-	decoder := json.NewDecoder(r.Body)
-	defer r.Body.Close()
-
 	var req request
-	err := decoder.Decode(&req)
+	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not decode body", err)
 		return
@@ -48,7 +45,8 @@ func (api *ApiHandler) HandlerDeleteUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// NOTE: this will need to be adjusted later when an admin wants to delete a user, it shouldn't require a password
+	// NOTE: this will need to be adjusted later when an admin wants to delete a user,
+	// it shouldn't require a password if it's an admin
 	user, err := api.DB.GetUserByID(r.Context(), []byte(id.String()))
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "could not get user by id", err)

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/seandisero/celaeno/internal/client/screen"
 )
 
 type CelaenoConfig struct {
@@ -36,7 +35,6 @@ func getCommandString(s string) (string, []string, error) {
 func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
 	<-exitSignal
 
-	cfg.Client.Screen.Cancel()
 	if cfg.Client.Connection != nil {
 		fmt.Println("closing client connection")
 		err := cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
@@ -48,11 +46,62 @@ func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
 
 	fmt.Printf(" > g")
 	for _, c := range "oodbuy" {
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 		fmt.Printf("%s", string(c))
 	}
 	fmt.Println()
 	os.Exit(0)
+}
+
+func (cfg *CelaenoConfig) doCommandPostMessage(message string) {
+	postCommand, ok := cfg.Commands["post-message"]
+	if !ok {
+		cfg.Client.Screen.CelaenoResponse("internal error getting post-message command")
+		return
+	}
+	err := postCommand(cfg, message)
+	if err != nil {
+		if strings.Contains(err.Error(), "no authorization token") {
+			cfg.Client.Screen.CelaenoResponse("it looks like your auth token doesn't work any more, try loggin in again")
+			cfg.Client.Screen.CelaenoResponse("to log in use /login <username> <password>")
+			return
+		} else if strings.Contains(err.Error(), "expired") {
+			cfg.Client.Screen.CelaenoResponse("login timed out, please login again")
+			cfg.Client.Screen.CelaenoResponse("to log in use /login <username> <password>")
+			return
+		} else if strings.Contains(err.Error(), "not logged in") {
+			cfg.Client.Screen.CelaenoResponse("not logged in")
+			cfg.Client.Screen.CelaenoResponse("to log in use /login <username> <password>")
+			return
+		} else if strings.Contains(err.Error(), "you must make a connection or") {
+			cfg.Client.Screen.CelaenoResponse("make a connection or start a chat")
+			cfg.Client.Screen.CelaenoResponse("/create-chat")
+			cfg.Client.Screen.CelaenoResponse("/connect <username>")
+			return
+		} else if strings.Contains(err.Error(), "chat no longer exists") {
+			cfg.Client.Screen.CelaenoResponse("chat no longer exists, the host probably left.")
+		}
+		cfg.Client.Screen.CelaenoResponse("some error occerred")
+		cfg.Client.Screen.CelaenoResponse(fmt.Sprintf("some error occerred: %v", err))
+	}
+}
+
+func (cfg *CelaenoConfig) doCommand(message string) {
+	commandStr, args, err := getCommandString(strings.Trim(message, "/"))
+	if err != nil {
+		cfg.Client.Screen.CelaenoResponse(fmt.Sprintf("error parsing the command: %s", commandStr))
+		return
+	}
+	command, ok := cfg.Commands[commandStr]
+	if !ok {
+		cfg.Client.Screen.CelaenoResponse(fmt.Sprintf("the command %s does not exist", commandStr))
+		return
+	}
+	err = command(cfg, args...)
+	if err != nil {
+		cfg.Client.Screen.CelaenoResponse(fmt.Sprintf("error running command: %s: %v", commandStr, err.Error()))
+		return
+	}
 }
 
 func StartRepl(cfg *CelaenoConfig) {
@@ -62,21 +111,19 @@ func StartRepl(cfg *CelaenoConfig) {
 	go cfg.ExitApplication(sigs)
 
 	scanner := bufio.NewScanner(os.Stdin)
-
+	cfg.Client.Screen.PrintWelcomeMessage()
 	for range cfg.Client.Screen.Width {
 		fmt.Printf("-")
 	}
 	fmt.Println()
 
 	for {
-
 		if !scanner.Scan() {
-			fmt.Println("breaking")
 			break
 		}
 		message := scanner.Text()
 
-		err := screen.ClearInput(message)
+		err := cfg.Client.Screen.ClearInput(message)
 		if err != nil {
 			slog.Error("error clearing input", "error", err)
 			return
@@ -87,44 +134,9 @@ func StartRepl(cfg *CelaenoConfig) {
 		}
 
 		if message[0] == '/' {
-			commandStr, args, err := getCommandString(strings.Trim(message, "/"))
-			if err != nil {
-				fmt.Printf(" > error parsing command: %v\n", err)
-				continue
-			}
-			command, ok := cfg.Commands[commandStr]
-			if !ok {
-				fmt.Printf(" > that command does not exist: %s\n", commandStr)
-				continue
-			}
-			err = command(cfg, args...)
-			if err != nil {
-				fmt.Printf(" > error running command %s: %v\n", commandStr, err)
-				continue
-			}
+			cfg.doCommand(message)
 			continue
 		}
-
-		postCommand, ok := cfg.Commands["post-message"]
-		if !ok {
-			fmt.Println(" > could not get command Post Message")
-			continue
-		}
-		err = postCommand(cfg, message)
-		if err != nil {
-			if strings.Contains(err.Error(), "no authorization token") {
-				fmt.Println(" > you must be logged in")
-				continue
-			} else if strings.Contains(err.Error(), "needs more arguments") {
-				fmt.Println(" > ")
-			} else if strings.Contains(err.Error(), "expired") {
-				fmt.Printf(" + \n > login timed out\n + \n")
-				continue
-			} else if strings.Contains(err.Error(), "not logged in") {
-				continue
-			}
-			slog.Error("posting message", "error", err)
-			continue
-		}
+		cfg.doCommandPostMessage(message)
 	}
 }

@@ -61,8 +61,6 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 		return shared.User{}, err
 	}
 
-	fmt.Printf("displayname: %s", loginData.User.Displayname.String)
-
 	user := shared.User{
 		ID:          loginData.User.ID,
 		Username:    loginData.User.Username,

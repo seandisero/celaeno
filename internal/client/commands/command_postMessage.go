@@ -13,17 +13,17 @@ func CommandPostMessage(cfg *cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("need more arguments to post message")
 	}
 
-	encryptedMessage, err := cfg.Client.Encrypt([]byte(args[0]))
-	if err != nil {
-		return err
-	}
-
 	if cfg.Client.LocalUser == nil {
 		cfg.Client.Screen.HandleMessage(shared.Message{
 			Username: "echo",
 			Message:  args[0],
 		})
 		return fmt.Errorf("not logged in")
+	}
+
+	encryptedMessage, err := cfg.Client.Encrypt([]byte(args[0]))
+	if err != nil {
+		return err
 	}
 
 	name := cfg.Client.LocalUser.Username

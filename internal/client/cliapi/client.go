@@ -81,7 +81,6 @@ outer:
 					continue
 				}
 			}
-			fmt.Println(message.Message)
 
 			messageBytes, err := base64.StdEncoding.DecodeString(message.Message)
 			if err != nil {
@@ -93,8 +92,6 @@ outer:
 				continue
 			}
 			message.Message = string(decryption)
-
-			cli.Screen.ClearMessageBox()
 			cli.Screen.HandleMessage(message)
 		}
 	}

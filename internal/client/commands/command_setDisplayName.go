@@ -8,7 +8,9 @@ import (
 
 func CommandSetUserAttr(cfg *cliapi.CelaenoConfig, args ...string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("not enough arguments passed into Set Display Name should be:\n/set displayname <new_displayname>")
+		cfg.Client.Screen.CelaenoResponse("not enough arguments passed into set")
+		cfg.Client.Screen.CelaenoResponse("/set <attribute> <new_displayname>")
+		return fmt.Errorf("not enough arguments passed into set")
 	}
 
 	switch args[0] {
@@ -19,22 +21,14 @@ func CommandSetUserAttr(cfg *cliapi.CelaenoConfig, args ...string) error {
 		}
 
 		cfg.Client.LocalUser = &user
-
-		fmt.Println(" + ")
-		fmt.Printf(" > name set to %s\n", user.Displayname.String)
-		fmt.Println(" + ")
+		cfg.Client.Screen.CelaenoResponse(fmt.Sprintf("display name set to: %s", user.Displayname.String))
 	case "cipher":
 		err := cfg.Client.SetUserCipher(args[1])
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(" + ")
-		fmt.Println(" > cipher has been set")
-		fmt.Println(" + ")
+		cfg.Client.Screen.CelaenoResponse("new cipher has been set")
 	}
-
-	// TODO: finish this one next maybe
 
 	return nil
 }

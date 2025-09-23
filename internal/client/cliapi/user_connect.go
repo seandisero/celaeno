@@ -57,6 +57,7 @@ func (cli *CelaenoClient) Connect(name string) error {
 	}
 
 	cli.Connection = conn
+	cli.ChatRoom = name
 	go cli.Listen()
 
 	return nil

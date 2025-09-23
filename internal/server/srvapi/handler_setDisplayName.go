@@ -12,14 +12,25 @@ import (
 )
 
 func (api *ApiHandler) HandlerSetDisplayName(w http.ResponseWriter, r *http.Request) {
-	id, err := uuid.Parse(r.PathValue("id"))
+	type request struct {
+		DisplayName string `json:"displayname"`
+	}
+
+	userID, err := GetUserIDFromContext(r.Context())
 	if err != nil {
 		server.RespondWithError(w, http.StatusInternalServerError, "invalid uuid", err)
 		return
 	}
 
-	type request struct {
-		DisplayName string `json:"displayname"`
+	id, err := uuid.Parse(r.PathValue("id"))
+	if err != nil {
+		server.RespondWithError(w, http.StatusBadRequest, "invalid uuid", err)
+		return
+	}
+
+	if id.String() != userID {
+		server.RespondWithError(w, http.StatusUnauthorized, "cannot change someone elses display name", err)
+		return
 	}
 
 	var requestBody request

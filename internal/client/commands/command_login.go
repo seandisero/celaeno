@@ -17,7 +17,7 @@ func CommandLogin(cfg *cliapi.CelaenoConfig, args ...string) error {
 
 	user, err := cfg.Client.Login(name, password)
 	if err != nil {
-		return fmt.Errorf("error loggin in: %w", err)
+		return err
 	}
 
 	username := user.Username

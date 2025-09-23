@@ -35,14 +35,13 @@ func main() {
 	celaenoClient := cliapi.NewClient(5 * time.Second)
 	url := os.Getenv("SERVER_URL")
 	port := os.Getenv("PORT")
-	celaenoClient.URL = "http" + url + port
-	// celaenoClient.WS_URL = "ws" + url + port
+	celaenoClient.URL = url + port
 
 	celaenoClient.Screen = screen.NewScreen(64)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	celaenoClient.Screen.Cancel = cancel
 	go celaenoClient.Screen.MessageLoop(ctx)
+	defer cancel()
 
 	celaenoConfig := cliapi.CelaenoConfig{
 		Client:   celaenoClient,

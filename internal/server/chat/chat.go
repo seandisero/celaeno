@@ -2,14 +2,12 @@ package chat
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/seandisero/celaeno/internal/server"
 )
 
 type ChatService struct {
@@ -51,9 +49,9 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 	c, err := websocket.Accept(w, r, nil)
 	if err != nil {
 		slog.Error("could not accept web socket connection", "error", err)
-		server.RespondWithError(w, http.StatusInternalServerError, "could not accept request: %w", err)
 		return err
 	}
+
 	mu.Lock()
 	conn = c
 	mu.Unlock()
@@ -70,7 +68,7 @@ func (ch *Chat) Subscribe(w http.ResponseWriter, r *http.Request) error {
 				return err
 			}
 		case <-ctx.Done():
-			fmt.Println("no longer handling messages")
+			slog.Info("subscriber disconnected, no longer handling messages")
 			return ctx.Err()
 		}
 	}
@@ -90,14 +88,15 @@ func pingLoop(c *websocket.Conn, ctx context.Context, duration time.Duration) {
 		}
 
 		if err := pingConnection(c); err != nil {
-			slog.Error("unsuccessful ping, closing connection")
-			err := c.CloseNow()
+			slog.Error("unsuccessful ping, closing connection", "error", err)
+			err := c.Close(websocket.StatusNormalClosure, "could not ping connection")
 			if err != nil {
-				slog.Error("failed to close now from connection in ping loop")
+				slog.Error("failed to close now from connection in ping loop", "error", err)
 				return
 			}
 			return
 		}
+		slog.Info("pinged connection")
 	}
 }
 
@@ -126,11 +125,6 @@ func writeTimeout(ctx context.Context, timeout time.Duration, c *websocket.Conn,
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// data, err := json.Marshal(msg)
-	// if err != nil {
-	// return err
-	// }
-
 	return c.Write(ctx, websocket.MessageText, msg)
 }
 
@@ -139,6 +133,10 @@ func (ch *Chat) PublishMessage(message []byte) {
 	defer ch.SubMu.Unlock()
 
 	for s := range ch.Subs {
-		s.Msg <- message
+		select {
+		case s.Msg <- message:
+		default:
+			slog.Warn("no message sent, channel is ful or no reciever")
+		}
 	}
 }

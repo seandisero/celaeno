@@ -8,13 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/seandisero/celaeno/internal/server/chat"
 	"github.com/seandisero/celaeno/internal/server/database"
 	"github.com/seandisero/celaeno/internal/server/srvapi"
-
-	// "github.com/go-chi/chi/v5"
-	// "github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
 
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
@@ -33,7 +30,6 @@ func main() {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		log.Fatal("could not get jwt secret")
-		os.Exit(1)
 	}
 
 	dbURL := os.Getenv("DB_URL")
@@ -54,20 +50,18 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", api)
 
+	// TODO: chage api/chat to chat/api since I'll probably be routing from my site to multiple programs.
 	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
 	mux.HandleFunc("PUT /api/users/{id}", api.MiddlewareValidateUser(api.HandlerSetDisplayName))
-	mux.Handle("DELETE /api/users/{id}", api.MiddlewareValidateUser(api.HandlerDeleteUser))
+	mux.HandleFunc("DELETE /api/users/{id}", api.MiddlewareValidateUser(api.HandlerDeleteUser))
 
 	mux.HandleFunc("POST /api/login", api.HandlerLogin)
-	mux.Handle("GET /api/login", api.MiddlewareValidateUser(api.HandlerLoggedIn))
+	mux.HandleFunc("GET /api/login", api.MiddlewareValidateUser(api.HandlerLoggedIn))
 
-	// this is the login endpoint it creates a chat room for the user when they log in.
-	mux.Handle("/api/chat/create", api.MiddlewareValidateUser(api.HandlerCreateChat))
+	mux.HandleFunc("/api/chat/create", api.MiddlewareValidateUser(api.HandlerCreateChat))
+	mux.HandleFunc("/api/chat/connect/{name}", api.MiddlewareValidateUser(api.HandlerConnectToChat))
 
-	// this is the endpoint to connect to another users chat.
-	mux.Handle("/api/chat/connect/{name}", api.MiddlewareValidateUser(api.HandlerConnectToChat))
-	// server is write only, so we can just post to an endpoint
-	mux.Handle("POST /api/chat/publish", api.MiddlewareValidateUser(api.HandlerPostMessage))
+	mux.HandleFunc("POST /api/chat/publish/{name}", api.MiddlewareValidateUser(api.HandlerPostMessage))
 
 	mux.HandleFunc("GET /status", api.HandlerStatus)
 
