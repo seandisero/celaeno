@@ -96,7 +96,6 @@ func pingLoop(c *websocket.Conn, ctx context.Context, duration time.Duration) {
 			}
 			return
 		}
-		slog.Info("pinged connection")
 	}
 }
 

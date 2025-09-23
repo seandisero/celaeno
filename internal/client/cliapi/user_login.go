@@ -2,10 +2,12 @@ package cliapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/seandisero/celaeno/internal/client/auth"
 	"github.com/seandisero/celaeno/internal/shared"
@@ -24,7 +26,9 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 
 	reqBody := bytes.NewBuffer(jsonBody)
 
-	req, err := http.NewRequest("POST", cli.URL+"/api/login", reqBody)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "POST", cli.URL+"/api/login", reqBody)
 	if err != nil {
 		return shared.User{}, fmt.Errorf("error creating new request: %w", err)
 	}

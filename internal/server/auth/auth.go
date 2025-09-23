@@ -18,7 +18,7 @@ const (
 )
 
 func HashPassword(password string) (string, error) {
-	hashed_password, err := bcrypt.GenerateFromPassword([]byte(password), 16)
+	hashed_password, err := bcrypt.GenerateFromPassword([]byte(password), 12)
 	if err != nil {
 		return "", err
 	}

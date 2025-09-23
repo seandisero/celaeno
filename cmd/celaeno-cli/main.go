@@ -32,9 +32,10 @@ func main() {
 		slog.Error("Could not open .env", "ERROR", err)
 	}
 
-	celaenoClient := cliapi.NewClient(5 * time.Second)
+	celaenoClient := cliapi.NewClient(30 * time.Second)
 	url := os.Getenv("SERVER_URL")
-	port := os.Getenv("PORT")
+	// port := os.Getenv("PORT")
+	port := ""
 	celaenoClient.URL = url + port
 
 	celaenoClient.Screen = screen.NewScreen(64)

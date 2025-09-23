@@ -40,7 +40,6 @@ func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
 		err := cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
 		if err != nil {
 			slog.Error("error occerred in connection", "error", err)
-			return
 		}
 	}
 
