@@ -51,6 +51,8 @@ func main() {
 	mux.Handle("/", api)
 
 	// TODO: chage api/chat to chat/api since I'll probably be routing from my site to multiple programs.
+	mux.HandleFunc("GET /startup", api.HandlerStartup)
+
 	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
 	mux.HandleFunc("PUT /api/users/{id}", api.MiddlewareValidateUser(api.HandlerSetDisplayName))
 	mux.HandleFunc("DELETE /api/users/{id}", api.MiddlewareValidateUser(api.HandlerDeleteUser))

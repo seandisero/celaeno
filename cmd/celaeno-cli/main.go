@@ -13,6 +13,8 @@ import (
 )
 
 func mapCommands(cfg *cliapi.CelaenoConfig) {
+	cfg.Commands["startup"] = commands.CommandStartup
+
 	cfg.Commands["login"] = commands.CommandLogin
 	cfg.Commands["logout"] = commands.CommandLogout
 	cfg.Commands["whoami"] = commands.CommandGetUser
