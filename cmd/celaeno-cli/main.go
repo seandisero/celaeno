@@ -24,6 +24,8 @@ func mapCommands(cfg *cliapi.CelaenoConfig) {
 	cfg.Commands["set"] = commands.CommandSetUserAttr
 
 	cfg.Commands["connect"] = commands.CommandConnect
+	cfg.Commands["chats"] = commands.CommandListChatRooms
+	cfg.Commands["leave"] = commands.CommandLeaveChat
 	cfg.Commands["create-chat"] = commands.CommandCreateChat
 	cfg.Commands["post-message"] = commands.CommandPostMessage
 }

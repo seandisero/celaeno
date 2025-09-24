@@ -35,8 +35,10 @@ func getCommandString(s string) (string, []string, error) {
 func (cfg *CelaenoConfig) ExitApplication(exitSignal chan os.Signal) {
 	<-exitSignal
 
+	cfg.Client.Screen.ClearMessageBox()
+	cfg.Client.Screen.CelaenoResponse("closing application")
+
 	if cfg.Client.Connection != nil {
-		fmt.Println("closing client connection")
 		err := cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user is closing the program")
 		if err != nil {
 			cfg.Client.Screen.CelaenoResponse("looks like the connection was already closed")

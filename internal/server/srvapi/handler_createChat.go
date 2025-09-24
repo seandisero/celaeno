@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/seandisero/celaeno/internal/server/chat"
 )
@@ -30,6 +31,9 @@ func (api *ApiHandler) HandlerCreateChat(w http.ResponseWriter, r *http.Request)
 
 	err = api.ChatService.Chats[user.Username].Subscribe(w, r)
 	if err != nil {
+		if strings.Contains(err.Error(), "context canceled") {
+			return
+		}
 		slog.Error("could not connect to websocket", "error", err)
 		return
 	}

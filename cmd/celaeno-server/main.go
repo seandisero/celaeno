@@ -50,7 +50,6 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", api)
 
-	// TODO: chage api/chat to chat/api since I'll probably be routing from my site to multiple programs.
 	mux.HandleFunc("GET /startup", api.HandlerStartup)
 
 	mux.HandleFunc("POST /api/users", api.HandlerCreateUser)
@@ -64,6 +63,7 @@ func main() {
 	mux.HandleFunc("/api/chat/connect/{name}", api.MiddlewareValidateUser(api.HandlerConnectToChat))
 
 	mux.HandleFunc("POST /api/chat/publish/{name}", api.MiddlewareValidateUser(api.HandlerPostMessage))
+	mux.HandleFunc("GET /api/chat/rooms", api.MiddlewareValidateUser(api.HandlerListChatRooms))
 
 	mux.HandleFunc("GET /status", api.HandlerStatus)
 

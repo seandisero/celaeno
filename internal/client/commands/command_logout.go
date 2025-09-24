@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 
+	"github.com/coder/websocket"
 	"github.com/seandisero/celaeno/internal/client/cliapi"
 	"github.com/seandisero/celaeno/internal/shared"
 )
@@ -17,7 +18,12 @@ func CommandLogout(cfg *cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("could not log out: %w", err)
 	}
 
-	cfg.Client.Cancel()
+	if cfg.Client.Connection != nil {
+		err = cfg.Client.Connection.Close(websocket.StatusNormalClosure, "user has logged out")
+		if err != nil {
+			return fmt.Errorf("could not close connection to websocket: %w", err)
+		}
+	}
 
 	message := shared.Message{
 		Username: "celaeno",
@@ -26,6 +32,7 @@ func CommandLogout(cfg *cliapi.CelaenoConfig, args ...string) error {
 	}
 
 	cfg.Client.Screen.HandleMessage(message)
+	cfg.Client.ChatRoom = ""
 
 	return nil
 }

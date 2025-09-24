@@ -2,6 +2,7 @@ package srvapi
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -24,8 +25,11 @@ func (api *ApiHandler) HandlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	slog.Info("user trying to log in", "username", user.Username)
+
 	err = auth.CheckPasswordHash(loginRequest.Password, user.HashedPassword)
 	if err != nil {
+		slog.Error("user login failed", "error", err, "username", user.Username)
 		server.RespondWithError(w, http.StatusUnauthorized, "password is incorrect", nil)
 		return
 	}

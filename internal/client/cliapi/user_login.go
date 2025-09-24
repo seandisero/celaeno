@@ -79,7 +79,6 @@ func (cli *CelaenoClient) Login(name, password string) (shared.User, error) {
 }
 
 func (cli *CelaenoClient) Logout() error {
-
 	err := auth.SetAuthToken("", cli.LocalUser.Username)
 	if err != nil {
 		return fmt.Errorf("could not remove token on logout: %w", err)

@@ -21,6 +21,10 @@ func CommandPostMessage(cfg *cliapi.CelaenoConfig, args ...string) error {
 		return fmt.Errorf("not logged in")
 	}
 
+	if cfg.Client.ChatRoom == "" {
+		return fmt.Errorf("not a part of any chat room")
+	}
+
 	encryptedMessage, err := cfg.Client.Encrypt([]byte(args[0]))
 	if err != nil {
 		return err
